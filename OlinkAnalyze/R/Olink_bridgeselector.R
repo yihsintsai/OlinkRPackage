@@ -36,9 +36,10 @@ olink_bridgeselector<-function(df, sampleMissingFreq, n){
                                       "OID[0-9]{5}"))
 
   #Filtering out control samples
-  df <- df %>%
-    dplyr::filter(!stringr::str_detect(SampleID, "CONTROL_SAMPLE*"))
-
+ # df <- df %>%
+ #   dplyr::filter(!stringr::str_detect(SampleID, "CONTROL_SAMPLE*"))
+   df <- df %>% dplyr::filter(!stringr::str_detect(SampleType, 
+                                                  "CONTROL"))
   #Outlier calculation as in qc_plot for filtering
   qc_outliers <- df %>%
     dplyr::group_by(Panel, SampleID) %>%
@@ -89,20 +90,31 @@ olink_bridgeselector<-function(df, sampleMissingFreq, n){
   }
 
 
-  df_1 <- df %>%
-    dplyr::left_join(qc_outliers, by = c('SampleID', 'Panel')) %>%
-    dplyr::mutate(NPX = ifelse(NPX <= LOD, NA, NPX)) %>%
-    dplyr::group_by(SampleID) %>%
-    dplyr::mutate(QC_Warning = dplyr::if_else(all(toupper(QC_Warning) == 'PASS'),
-                                              'PASS',
-                                              'WARNING')) %>%
-    dplyr::filter(QC_Warning == 'PASS') %>%
-    dplyr::mutate(Outliers = sum(Outlier)) %>%
-    dplyr::filter(Outliers == 0) %>%
-    dplyr::mutate(PercAssaysBelowLOD = sum(is.na(NPX))/dplyr::n()) %>%
-    dplyr::mutate(MeanNPX = mean(NPX, na.rm = TRUE)) %>%
-    dplyr::ungroup() %>%
-    dplyr::filter(PercAssaysBelowLOD < sampleMissingFreq)
+ # df_1 <- df %>%
+ #  dplyr::left_join(qc_outliers, by = c('SampleID', 'Panel')) %>%
+ #   dplyr::mutate(NPX = ifelse(NPX <= LOD, NA, NPX)) %>%
+ #   dplyr::group_by(SampleID) %>%
+ #   dplyr::mutate(QC_Warning = dplyr::if_else(all(toupper(QC_Warning) == 'PASS'),
+ #                                             'PASS',
+ #                                             'WARNING')) %>%
+ #   dplyr::filter(QC_Warning == 'PASS') %>%
+ #   dplyr::mutate(Outliers = sum(Outlier)) %>%
+ #   dplyr::filter(Outliers == 0) %>%
+ #   dplyr::mutate(PercAssaysBelowLOD = sum(is.na(NPX))/dplyr::n()) %>%
+ #   dplyr::mutate(MeanNPX = mean(NPX, na.rm = TRUE)) %>%
+ #   dplyr::ungroup() %>%
+ #   dplyr::filter(PercAssaysBelowLOD < sampleMissingFreq)
+  df_1 <- df %>% dplyr::left_join(qc_outliers, by = c("SampleID","Panel")) %>% 
+      dplyr::mutate(NPX = ifelse(BelowLOD == TRUE, NA, NPX)) %>% 
+      dplyr::group_by(SampleID) %>% 
+      dplyr::mutate(QC_Warning = dplyr::if_else(all(toupper(QC_Warning) == "PASS"), "PASS", "WARNING")) %>% 
+      dplyr::filter(QC_Warning == "PASS") %>% 
+      dplyr::mutate(Outliers = sum(Outlier)) %>% 
+      dplyr::filter(Outliers == 0) %>% 
+      dplyr::mutate(PercAssaysBelowLOD = sum(is.na(NPX))/dplyr::n())%>% 
+      dplyr::mutate(MeanNPX = mean(NPX, na.rm = TRUE)) %>% 
+      dplyr::ungroup() %>% 
+      dplyr::filter(PercAssaysBelowLOD < sampleMissingFreq) #20250306
 
 
   df_2 <- df_1 %>%
